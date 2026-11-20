@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Lee y Une P-D" />
+  <meta name="description" content="Aplicación educativa PWA para primero de primaria: Lee, une con su dibujo y colorea (sílabas P y D)." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+  <title>Lee y une con su dibujo y luego colorea (P y D)</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fuente escolar legible -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Andika:ital,wght@0,400;0,700;1,400&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --font-school: 'Andika', 'Nunito', sans-serif;
+      --font-ui: 'Nunito', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-ui);
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+      background-size: 20px 20px;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    .school-text {
+      font-family: var(--font-school);
+      letter-spacing: 0.01em;
+    }
+
+    .worksheet-paper {
+      background: #ffffff;
+      border: 3px solid #334155;
+      box-shadow: 0 12px 30px -8px rgba(15, 23, 42, 0.14);
+      position: relative;
+    }
+
+    .worksheet-inner-border {
+      border: 2px dashed #94a3b8;
+    }
+
+    /* Dibujos SVG estilo libro para colorear */
+    .coloring-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* Los detalles (líneas, ojos, puntos) no estorban al tocar */
+    .coloring-svg *:not(.paintable) {
+      pointer-events: none;
+    }
+
+    .coloring-svg .paintable {
+      cursor: pointer;
+      pointer-events: auto;
+      transition: fill 0.2s ease, filter 0.15s ease;
+    }
+
+    .modal-coloring-svg .paintable:hover {
+      filter: brightness(0.94);
+    }
+
+    /* ======================= ANIMACIONES DE LOS DIBUJOS ======================= */
+    .coloring-svg .a {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation-iteration-count: infinite;
+      animation-timing-function: ease-in-out;
+    }
+
+    .a-float  { animation-name: aFloat;  animation-duration: 3s;   animation-direction: alternate; }
+    .a-bob    { animation-name: aBob;    animation-duration: 2.4s; animation-direction: alternate; }
+    .a-hop    { animation-name: aHop;    animation-duration: 1.7s; }
+    .a-peek   { animation-name: aPeek;   animation-duration: 2s;   animation-direction: alternate; }
+    .a-wobble { animation-name: aWobble; animation-duration: 2.2s; animation-direction: alternate; }
+    .a-swayB  { animation-name: aSway;   animation-duration: 2.6s; animation-direction: alternate; transform-origin: 50% 100%; }
+    .a-swayT  { animation-name: aSway;   animation-duration: 2.4s; animation-direction: alternate; transform-origin: 50% 0%; }
+    .a-wagR   { animation-name: aWag;    animation-duration: 1.4s; animation-direction: alternate; transform-origin: 100% 50%; }
+    .a-flapL  { animation-name: aFlapL;  animation-duration: 0.8s; animation-direction: alternate; transform-origin: 100% 0%; }
+    .a-flapR  { animation-name: aFlapR;  animation-duration: 0.8s; animation-direction: alternate; transform-origin: 0% 0%; }
+    .a-spin   { animation-name: aSpin;   animation-duration: 5s;   animation-timing-function: linear; }
+    .a-blink  { animation-name: aBlink;  animation-duration: 4s;   animation-timing-function: linear; }
+    .a-pulse  { animation-name: aPulse;  animation-duration: 1.6s; animation-direction: alternate; }
+    .a-twinkle{ animation-name: aTwinkle;animation-duration: 1.8s; animation-direction: alternate; }
+    .a-rise   { animation-name: aRise;   animation-duration: 2.4s; animation-timing-function: ease-out; }
+    .a-press  { animation-name: aPress;  animation-duration: 1.6s; }
+    .a-point  { animation-name: aPoint;  animation-duration: 1.2s; animation-direction: alternate; }
+    .a-jump   { animation-name: aJump;   animation-duration: 2.4s; animation-direction: alternate; }
+    .a-door   { animation-name: aDoor;   animation-duration: 3.4s; transform-origin: 0% 50%; }
+    .a-tumble { animation-name: aTumble; animation-duration: 2s;   animation-direction: alternate; }
+    .a-shadow { animation-name: aShadow; animation-duration: 1.7s; }
+
+    @keyframes aFloat  { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+    @keyframes aBob    { from { transform: translateY(-2px); } to { transform: translateY(3px); } }
+    @keyframes aHop    { 0%, 100% { transform: translateY(0) scale(1.04, .96); } 45% { transform: translateY(-13px) scale(.97, 1.03); } 70% { transform: translateY(0) scale(1.04, .96); } }
+    @keyframes aPeek   { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+    @keyframes aWobble { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+    @keyframes aSway   { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+    @keyframes aWag    { from { transform: rotate(-9deg); } to { transform: rotate(9deg); } }
+    @keyframes aFlapL  { from { transform: rotate(8deg); } to { transform: rotate(-16deg); } }
+    @keyframes aFlapR  { from { transform: rotate(-8deg); } to { transform: rotate(16deg); } }
+    @keyframes aSpin   { to { transform: rotate(360deg); } }
+    @keyframes aBlink  { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.1); } }
+    @keyframes aPulse  { from { transform: scale(1); } to { transform: scale(1.08); } }
+    @keyframes aTwinkle{ from { opacity: .35; transform: scale(.8); } to { opacity: 1; transform: scale(1.15); } }
+    @keyframes aRise   { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
+    @keyframes aPress  { 0%, 55%, 100% { transform: translateY(0); } 65%, 80% { transform: translateY(3px); } }
+    @keyframes aPoint  { from { transform: translateX(0); } to { transform: translateX(6px); } }
+    @keyframes aJump   { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-10px) rotate(4deg); } }
+    @keyframes aDoor   { 0%, 30%, 100% { transform: scaleX(1); } 55%, 75% { transform: scaleX(.78); } }
+    @keyframes aTumble { from { transform: translateY(0) rotate(-6deg); } to { transform: translateY(-8px) rotate(6deg); } }
+    @keyframes aShadow { 0%, 100% { transform: scale(1); } 45% { transform: scale(.7); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .coloring-svg .a { animation: none !important; }
+    }
+
+    /* Celebración al terminar de colorear */
+    @keyframes celebrateBounce {
+      0% { transform: scale(1) rotate(0deg); }
+      20% { transform: scale(1.22) rotate(-7deg); }
+      40% { transform: scale(1.26) rotate(7deg); }
+      60% { transform: scale(1.18) rotate(-4deg); }
+      80% { transform: scale(1.1) rotate(3deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .animate-celebrate { animation: celebrateBounce 0.95s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-6px); }
+      80% { transform: translateX(6px); }
+    }
+    .animate-shake { animation: shakeError 0.45s ease-in-out; }
+
+    @keyframes popStar {
+      0% { opacity: 0; transform: scale(0.2) translateY(0); }
+      50% { opacity: 1; transform: scale(1.2) translateY(-10px); }
+      100% { opacity: 0; transform: scale(0.6) translateY(-22px); }
+    }
+    .star-burst { animation: popStar 0.9s ease-out forwards; }
+
+    .anchor-dot {
+      transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .anchor-dot.active {
+      transform: scale(1.35);
+      box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.3);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+  <!-- Barra superior de estadísticas -->
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b-2 border-slate-200 shadow-sm">
+    <div class="max-w-5xl mx-auto px-3 py-2.5 sm:px-6 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-sm">
+          ✏️
+        </div>
+        <div>
+          <h1 class="text-sm sm:text-base font-extrabold text-slate-800 leading-tight">Lee, Une y Colorea</h1>
+          <p class="text-[11px] sm:text-xs font-semibold text-slate-500">1° Primaria • Sílabas P y D</p>
+        </div>
+        <button id="btnInstallPwa" class="hidden ml-1 px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs font-extrabold transition flex items-center gap-1" title="Instalar aplicación">
+          <span>📲 Instalar</span>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div class="flex items-center gap-1.5 bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-xl">
+          <span class="text-xs font-bold text-blue-700 uppercase">Ronda</span>
+          <span id="statRound" class="text-sm sm:text-base font-black text-blue-900 bg-white px-2 py-0.5 rounded-lg shadow-xs">1 / 3</span>
+        </div>
+
+        <div class="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-xl">
+          <span class="text-xs font-bold text-emerald-700 uppercase">Aciertos</span>
+          <span id="statHits" class="text-sm sm:text-base font-black text-emerald-900 bg-white px-2 py-0.5 rounded-lg shadow-xs">0 / 5</span>
+        </div>
+
+        <div id="statMistakesBox" class="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl transition-colors">
+          <span class="text-xs font-bold text-amber-800 uppercase">Fallas</span>
+          <span id="statMistakes" class="text-sm sm:text-base font-black text-amber-900 bg-white px-2 py-0.5 rounded-lg shadow-xs">0</span>
+          <span class="hidden md:inline text-[11px] font-bold text-amber-700">(Mín. &lt; 2)</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Pantalla de bienvenida -->
+  <div id="welcomeOverlay" class="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center border-4 border-blue-500 shadow-2xl">
+      <div class="w-20 h-20 mx-auto mb-4 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-4xl shadow-inner">
+        🎨
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-black text-slate-800 mb-2 leading-tight">
+        ¡Vamos a leer y colorear!
+      </h2>
+      <p class="text-slate-600 font-semibold text-sm sm:text-base mb-5">
+        Lee cada oración de la izquierda, únela con su dibujo de la derecha y dale color.
+      </p>
+      <div class="bg-blue-50 border border-blue-200 rounded-2xl p-3 mb-6 text-xs sm:text-sm text-blue-800 font-bold">
+        ⭐ Completa 3 rondas con menos de 2 fallas en cada una.
+      </div>
+      <button id="btnStartActivity" class="w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-lg sm:text-xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-3 cursor-pointer">
+        <span>🔊</span>
+        <span>COMENZAR ACTIVIDAD</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Hoja didáctica -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-6 flex flex-col">
+    <div class="worksheet-paper rounded-3xl p-2 sm:p-3 flex-1 flex flex-col">
+      <div class="worksheet-inner-border rounded-2xl p-3 sm:p-6 flex-1 flex flex-col relative">
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 mb-5 sm:mb-7">
+          <div class="border-2 border-slate-800 rounded-full px-5 py-2.5 sm:px-8 sm:py-3 bg-white shadow-xs text-center">
+            <h2 class="school-text text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 tracking-wide">
+              Lee y une con su dibujo y luego colorea
+            </h2>
+          </div>
+          <button id="btnRepeatInstruction" type="button" aria-label="Escuchar indicación"
+            class="shrink-0 px-4 py-2.5 rounded-full bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-900 font-extrabold text-sm sm:text-base border-2 border-slate-800 shadow-sm transition flex items-center gap-2 cursor-pointer">
+            <span class="text-xl">🔊</span>
+            <span>Escuchar</span>
+          </button>
+        </div>
+
+        <div id="feedbackBanner" class="mb-4 px-4 py-2.5 rounded-2xl text-center font-extrabold text-sm sm:text-base transition-all duration-300 bg-slate-100 text-slate-700 border border-slate-200">
+          Toca una oración de la izquierda y luego su dibujo de la derecha.
+        </div>
+
+        <div id="matchingBoard" class="relative grid grid-cols-12 gap-2 sm:gap-6 items-center flex-1 my-auto py-1">
+          <svg id="connectorSvg" class="absolute inset-0 w-full h-full pointer-events-none z-10"></svg>
+
+          <div id="sentencesColumn" class="col-span-7 sm:col-span-6 flex flex-col justify-between gap-3 sm:gap-4 z-20"></div>
+
+          <div class="hidden sm:block sm:col-span-1"></div>
+
+          <div id="drawingsColumn" class="col-span-5 sm:col-span-5 flex flex-col justify-between gap-3 sm:gap-4 z-20"></div>
+        </div>
+
+        <div class="mt-5 pt-2 border-t border-slate-200 flex items-center justify-between text-xs text-slate-400 font-bold">
+          <span>Material Didáctico Interactivo • 1° Grado</span>
+          <span id="syllableBadge" class="text-slate-500">Sílabas: PA PE PI PO PU • DA DE DI DO DU</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- MODAL DE COLOREADO -->
+  <div id="coloringModal" class="fixed inset-0 z-40 hidden bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white rounded-3xl max-w-lg w-full max-h-[96vh] overflow-y-auto p-5 sm:p-6 border-4 border-emerald-500 shadow-2xl flex flex-col items-center">
+      <div class="w-full flex items-center justify-between mb-2">
+        <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs sm:text-sm font-black">
+          🎨 ¡Hora de colorear!
+        </span>
+        <button id="btnAutoColor" type="button" class="px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs sm:text-sm font-extrabold transition flex items-center gap-1 cursor-pointer">
+          <span>✨</span>
+          <span>Pintar mágico</span>
+        </button>
+      </div>
+
+      <p id="coloringSentence" class="school-text text-xl sm:text-2xl font-bold text-slate-900 text-center my-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-2xl w-full">
+        El pato nada en el lago.
+      </p>
+
+      <p class="text-xs sm:text-sm font-bold text-slate-500 mb-3 text-center">
+        Elige un color abajo y toca las partes del dibujo:
+      </p>
+
+      <div id="coloringCanvasWrapper" class="w-64 h-64 sm:w-80 sm:h-80 bg-slate-50 border-2 border-dashed border-slate-300 rounded-3xl p-3 flex items-center justify-center mb-4 relative"></div>
+
+      <div id="colorPalette" class="grid grid-cols-5 sm:grid-cols-10 gap-2 w-full mb-5"></div>
+
+      <button id="btnFinishColoring" type="button" class="w-full py-3.5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-base sm:text-lg shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
+        <span>✅</span>
+        <span>¡LISTO, YA COLOREÉ!</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL DE FIN DE RONDA / FIN DE JUEGO -->
+  <div id="roundResultModal" class="fixed inset-0 z-50 hidden bg-slate-900/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 text-center border-4 border-blue-500 shadow-2xl">
+      <div id="resultIcon" class="text-6xl mb-3">🏆</div>
+      <h3 id="resultTitle" class="text-2xl sm:text-3xl font-black text-slate-800 mb-2">¡Ronda Completada!</h3>
+      <p id="resultMessage" class="text-slate-600 font-bold text-sm sm:text-base mb-5">Excelente trabajo leyendo y coloreando.</p>
+
+      <div class="grid grid-cols-3 gap-2 bg-slate-100 p-3 rounded-2xl mb-6 border border-slate-200">
+        <div>
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Ronda</div>
+          <div id="modalStatRound" class="text-lg font-black text-blue-700">1 / 3</div>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Aciertos</div>
+          <div id="modalStatHits" class="text-lg font-black text-emerald-700">5 / 5</div>
+        </div>
+        <div>
+          <div class="text-[11px] font-bold text-slate-500 uppercase">Fallas</div>
+          <div id="modalStatMistakes" class="text-lg font-black text-amber-700">0</div>
+        </div>
+      </div>
+
+      <button id="btnRoundAction" type="button" class="w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-lg shadow-lg transition cursor-pointer">
+        SIGUIENTE RONDA ➡️
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * 1. PWA: SERVICE WORKER + BOTÓN DE INSTALAR
+     *    (manifest.webmanifest y sw.js viven junto a este archivo; hay que servir
+     *     la carpeta por HTTPS o localhost para poder instalarla)
+     * ============================================================================
+     */
+    (function setupPWA() {
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').catch(() => {});
+        });
+      }
+
+      let deferredPrompt;
+      const btnInstall = document.getElementById('btnInstallPwa');
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        btnInstall.classList.remove('hidden');
+      });
+      btnInstall.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        btnInstall.classList.add('hidden');
+      });
+      window.addEventListener('appinstalled', () => btnInstall.classList.add('hidden'));
+    })();
+
+    /**
+     * ============================================================================
+     * 2. VOZ EN ESPAÑOL DE MÉXICO (es-MX) Y EFECTOS DE SONIDO
+     * ============================================================================
+     */
+    const VoiceEngine = {
+      selectedVoice: null,
+
+      init() {
+        const loadVoices = () => {
+          const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+          if (!voices.length) return;
+          this.selectedVoice =
+            voices.find(v => v.lang.toLowerCase().replace('_', '-') === 'es-mx' && (v.name.includes('Paulina') || v.name.includes('Dalia') || v.name.includes('Sabina') || v.name.includes('Natural'))) ||
+            voices.find(v => v.lang.toLowerCase().replace('_', '-') === 'es-mx') ||
+            voices.find(v => v.lang.toLowerCase().startsWith('es-419')) ||
+            voices.find(v => v.lang.toLowerCase().startsWith('es'));
+        };
+        loadVoices();
+        if (window.speechSynthesis && window.speechSynthesis.onvoiceschanged !== undefined) {
+          window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+      },
+
+      speak(text, rate = 0.92, pitch = 1.05) {
+        if (!('speechSynthesis' in window)) return;
+        try {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-MX';
+          if (this.selectedVoice) utterance.voice = this.selectedVoice;
+          utterance.rate = rate;
+          utterance.pitch = pitch;
+          window.speechSynthesis.speak(utterance);
+        } catch (err) {
+          console.warn('Error de síntesis de voz:', err);
+        }
+      }
+    };
+
+    const SoundFX = {
+      ctx: null,
+      ensureContext() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      },
+      playPop() {
+        this.ensureContext();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(780, this.ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.09);
+      },
+      playSuccess() {
+        this.ensureContext();
+        if (!this.ctx) return;
+        const notes = [523.25, 659.25, 783.99, 1046.5];
+        notes.forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          const t = this.ctx.currentTime + idx * 0.09;
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0.18, t);
+          gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.26);
+        });
+      },
+      playError() {
+        this.ensureContext();
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(165, this.ctx.currentTime + 0.22);
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.24);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.25);
+      }
+    };
+
+    /**
+     * ============================================================================
+     * 3. BANCO DE 20 PALABRAS (10 CON P Y 10 CON D) CON DIBUJOS SVG ANIMADOS
+     * ============================================================================
+     * Cada dibujo se arma con piezas pintables ("paintable" + "data-default" con el
+     * color sugerido para "Pintar mágico") y detalles de línea que no estorban al
+     * tocar. Las animaciones (clase "a a-xxx") se definen arriba en el CSS.
+     */
+    const SV = (inner) => `<svg viewBox="0 0 140 140" class="coloring-svg"><g stroke="#1e293b" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">${inner}</g></svg>`;
+    const pa = (tag, attrs, color) => `<${tag} ${attrs} class="paintable" data-default="${color}" fill="#ffffff"/>`;
+    const PATH = (d, c) => pa('path', `d="${d}"`, c);
+    const CIR  = (x, y, r, c) => pa('circle', `cx="${x}" cy="${y}" r="${r}"`, c);
+    const ELL  = (x, y, rx, ry, c) => pa('ellipse', `cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"`, c);
+    const RECT = (x, y, w, h, rx, c) => pa('rect', `x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"`, c);
+    const POLY = (pts, c) => pa('polygon', `points="${pts}"`, c);
+    const LN   = (d, w = 1.8) => `<path d="${d}" fill="none" stroke-width="${w}"/>`;
+    const DOT  = (x, y, r = 3) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#1e293b" stroke="none"/>`;
+    const SHINE = (x, y, r = 1.8) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#ffffff" stroke="none"/>`;
+    const HL   = (d, w = 3.5) => `<path d="${d}" fill="none" stroke="#ffffff" stroke-width="${w}" stroke-linecap="round"/>`;
+    const RING = (x, y, r, w = 1.3) => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke-width="${w}"/>`;
+    const BUB  = (x, y, r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#ffffff" fill-opacity="0.75" stroke-width="1.2"/>`;
+    const WEL  = (x, y, rx, ry) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#ffffff" stroke-width="1.5"/>`;
+    const BK   = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="#1e293b"/>`;
+    const G    = (t, inner) => `<g transform="${t}">${inner}</g>`;
+    const AN   = (cls, inner, delay = 0) => `<g class="a ${cls}" style="animation-delay:-${delay}s">${inner}</g>`;
+    const BL   = (inner, delay = 0) => AN('a-blink', inner, delay);
+    const STAR = (x, y, c) => POLY(`${x},${y - 8} ${x + 2.5},${y - 2.5} ${x + 8},${y} ${x + 2.5},${y + 2.5} ${x},${y + 8} ${x - 2.5},${y + 2.5} ${x - 8},${y} ${x - 2.5},${y - 2.5}`, c);
+    const PETALS = (d, c1, c2, n, start) => Array.from({ length: n }, (_, i) => G(`rotate(${start + i * 360 / n} 70 60)`, PATH(d, i % 2 ? c2 : c1))).join('');
+    const XS = (pts) => pts.map(([x, y]) => LN(`M${x - 4} ${y - 4} L${x + 4} ${y + 4} M${x + 4} ${y - 4} L${x - 4} ${y + 4}`, 1.3)).join('');
+
+    const WORD_BANK = [
+      // ==================== LETRA P (PA, PE, PI, PO, PU) ====================
+      {
+        id: 'p_pato', letter: 'P', syllable: 'PA', word: 'Pato',
+        sentence: 'El pato nada en el lago.',
+        svg: SV(
+          AN('a-float',
+            PATH('M28 100 L8 84 C18 80 30 82 40 90 Z', '#facc15') +
+            RECT(78, 62, 24, 46, 11, '#facc15') +
+            ELL(64, 102, 40, 24, '#facc15') +
+            PATH('M42 100 C50 84 78 88 86 104 C76 114 54 114 42 100 Z', '#fde047') +
+            LN('M52 100 C60 94 72 96 78 102', 1.4) +
+            CIR(94, 54, 22, '#facc15') +
+            PATH('M114 50 C130 48 136 56 130 62 C124 66 116 64 112 62 Z', '#f97316') +
+            LN('M114 56 L130 56', 1.5) +
+            BL(DOT(100, 48, 3.5) + SHINE(101.2, 46.8, 1.2)) +
+            CIR(100, 61, 3.5, '#fda4af') +
+            LN('M92 33 Q88 24 96 22 M99 33 Q102 25 108 27', 2)
+          ) +
+          AN('a-bob',
+            PATH('M0 118 C14 108 28 108 42 118 C56 128 70 128 84 118 C98 108 112 108 126 118 C130 121 134 122 140 120 L140 140 L0 140 Z', '#38bdf8') +
+            LN('M16 128 Q24 124 32 128 M80 130 Q88 126 96 130 M108 124 Q114 121 120 124', 1.4)
+          ) +
+          CIR(12, 40, 6, '#fde047') + LN('M12 26 L12 30 M12 50 L12 54 M0 40 L4 40 M20 40 L24 40', 1.8)
+        )
+      },
+      {
+        id: 'p_papalote', letter: 'P', syllable: 'PA', word: 'Papalote',
+        sentence: 'El papalote vuela alto.',
+        svg: SV(
+          AN('a-float', ELL(22, 24, 14, 7, '#e0f2fe') + ELL(32, 19, 9, 6, '#e0f2fe'), 0) +
+          AN('a-float', ELL(120, 112, 14, 6, '#e0f2fe') + ELL(112, 108, 9, 5, '#e0f2fe'), 1.4) +
+          AN('a-wobble',
+            POLY('70,8 108,46 70,46', '#ef4444') +
+            POLY('70,8 32,46 70,46', '#3b82f6') +
+            POLY('32,46 70,46 70,98', '#facc15') +
+            POLY('108,46 70,46 70,98', '#22c55e') +
+            LN('M70 8 L70 98 M32 46 L108 46', 1.4) +
+            LN('M70 98 C58 106 82 114 68 122 C58 128 72 134 66 138', 2) +
+            POLY('60,102 68,108 60,114', '#ec4899') + POLY('76,102 68,108 76,114', '#ec4899') +
+            POLY('60,120 68,126 60,132', '#facc15') + POLY('76,120 68,126 76,132', '#facc15') +
+            DOT(70, 46, 2.5)
+          )
+        )
+      },
+      {
+        id: 'p_pera', letter: 'P', syllable: 'PE', word: 'Pera',
+        sentence: 'La pera es verde.',
+        svg: SV(
+          ELL(70, 133, 30, 5, '#cbd5e1') +
+          AN('a-wobble',
+            PATH('M70 40 C58 40 54 50 50 60 C44 72 30 80 30 98 C30 118 50 128 70 128 C90 128 110 118 110 98 C110 80 96 72 90 60 C86 50 82 40 70 40 Z', '#a3e635') +
+            PATH('M44 90 C42 100 46 110 54 116 C54 106 52 96 44 90 Z', '#d9f99d') +
+            PATH('M68 42 C68 32 70 24 74 18 L80 20 C77 26 76 34 76 42 Z', '#78350f') +
+            PATH('M76 28 C84 12 106 12 112 24 C102 36 86 36 76 28 Z', '#16a34a') +
+            LN('M78 28 C88 24 98 22 108 24') +
+            DOT(86, 80, 1.4) + DOT(96, 90, 1.4) + DOT(92, 104, 1.4) + DOT(48, 100, 1.4) +
+            BL(DOT(60, 96, 3) + DOT(80, 96, 3) + SHINE(61, 95, 1) + SHINE(81, 95, 1)) +
+            LN('M62 106 Q70 114 78 106', 2) +
+            CIR(52, 106, 4, '#fb7185') + CIR(88, 106, 4, '#fb7185')
+          )
+        )
+      },
+      {
+        id: 'p_pelota', letter: 'P', syllable: 'PE', word: 'Pelota',
+        sentence: 'Pepe patea la pelota.',
+        svg: SV(
+          AN('a-shadow', ELL(70, 132, 36, 5, '#cbd5e1')) +
+          AN('a-hop',
+            PATH('M70 70 L70 20 A50 50 0 0 1 113.3 45 Z', '#ef4444') +
+            PATH('M70 70 L113.3 45 A50 50 0 0 1 113.3 95 Z', '#facc15') +
+            PATH('M70 70 L113.3 95 A50 50 0 0 1 70 120 Z', '#22c55e') +
+            PATH('M70 70 L70 120 A50 50 0 0 1 26.7 95 Z', '#3b82f6') +
+            PATH('M70 70 L26.7 95 A50 50 0 0 1 26.7 45 Z', '#f97316') +
+            PATH('M70 70 L26.7 45 A50 50 0 0 1 70 20 Z', '#a855f7') +
+            CIR(70, 70, 9, '#ffffff') +
+            HL('M38 44 C44 34 54 28 64 26') + HL('M32 56 C33 52 34 50 35 48', 3)
+          )
+        )
+      },
+      {
+        id: 'p_pina', letter: 'P', syllable: 'PI', word: 'Piña',
+        sentence: 'La piña es amarilla.',
+        svg: SV(
+          AN('a-float',
+            AN('a-swayB',
+              PATH('M60 62 C44 60 30 54 22 42 C38 42 52 50 62 60 Z', '#4ade80') +
+              PATH('M80 62 C96 60 110 54 118 42 C102 42 88 50 78 60 Z', '#4ade80') +
+              PATH('M64 60 C50 50 40 38 38 22 C52 28 62 40 68 56 Z', '#22c55e') +
+              PATH('M76 60 C90 50 100 38 102 22 C88 28 78 40 72 56 Z', '#22c55e') +
+              PATH('M70 58 C62 42 66 22 70 8 C74 22 78 42 70 58 Z', '#16a34a')
+            ) +
+            ELL(70, 94, 34, 38, '#facc15') +
+            XS([[56, 72], [84, 72], [70, 84], [52, 90], [88, 90], [62, 100], [78, 100], [52, 110], [88, 110], [70, 114], [60, 124], [80, 124]]) +
+            HL('M44 84 C42 96 46 108 54 114', 4)
+          )
+        )
+      },
+      {
+        id: 'p_piano', letter: 'P', syllable: 'PI', word: 'Piano',
+        sentence: 'Pipo toca el piano.',
+        svg: SV(
+          AN('a-float', CIR(24, 16, 5, '#a855f7') + LN('M29 16 L29 3 L38 6', 2), 0) +
+          AN('a-float', CIR(112, 14, 5, '#ec4899') + LN('M117 14 L117 1 L126 4', 2), 1.4) +
+          RECT(14, 26, 112, 56, 6, '#92400e') +
+          RECT(24, 32, 92, 44, 4, '#b45309') +
+          RECT(48, 34, 44, 38, 2, '#f8fafc') +
+          LN('M52 44 L88 44 M52 50 L88 50 M52 56 L88 56 M52 62 L88 62', 1.1) +
+          DOT(58, 56, 2.2) + DOT(68, 50, 2.2) + DOT(78, 56, 2.2) + DOT(84, 47, 2.2) +
+          RECT(10, 82, 120, 10, 3, '#78350f') +
+          RECT(18, 120, 10, 16, 2, '#78350f') + RECT(112, 120, 10, 16, 2, '#78350f') +
+          RECT(18, 92, 13, 28, 2, '#fecaca') +
+          AN('a-press', RECT(31, 92, 13, 28, 2, '#fed7aa'), 0.2) +
+          RECT(44, 92, 13, 28, 2, '#fef08a') +
+          RECT(57, 92, 13, 28, 2, '#bbf7d0') +
+          AN('a-press', RECT(70, 92, 13, 28, 2, '#bae6fd'), 0.9) +
+          RECT(83, 92, 13, 28, 2, '#c7d2fe') +
+          AN('a-press', RECT(96, 92, 13, 28, 2, '#fbcfe8'), 1.3) +
+          RECT(109, 92, 13, 28, 2, '#fef08a') +
+          BK(27.5, 92, 7, 17) + BK(40.5, 92, 7, 17) + BK(66.5, 92, 7, 17) + BK(79.5, 92, 7, 17) + BK(92.5, 92, 7, 17)
+        )
+      },
+      {
+        id: 'p_pollito', letter: 'P', syllable: 'PO', word: 'Pollito',
+        sentence: 'El pollito dice pío.',
+        svg: SV(
+          AN('a-peek',
+            CIR(70, 76, 38, '#facc15') +
+            ELL(70, 92, 22, 16, '#fef08a') +
+            AN('a-flapL', PATH('M36 76 C20 78 18 98 28 106 C38 100 42 90 42 80 Z', '#fde047')) +
+            AN('a-flapR', PATH('M104 76 C120 78 122 98 112 106 C102 100 98 90 98 80 Z', '#fde047')) +
+            LN('M66 40 Q60 30 64 24 M72 40 Q72 30 80 26 M78 42 Q84 36 90 38', 2) +
+            BL(DOT(56, 68, 3.5) + DOT(84, 68, 3.5) + SHINE(57.2, 66.8, 1.2) + SHINE(85.2, 66.8, 1.2)) +
+            PATH('M62 76 L78 76 L70 88 Z', '#f97316') +
+            CIR(46, 80, 4.5, '#fda4af') + CIR(94, 80, 4.5, '#fda4af')
+          ) +
+          PATH('M24 104 L36 118 L46 102 L58 118 L70 102 L82 118 L94 102 L104 118 L116 104 L112 128 C102 138 38 138 28 128 Z', '#fef3c7') +
+          LN('M40 126 Q70 134 100 126', 1.4)
+        )
+      },
+      {
+        id: 'p_popote', letter: 'P', syllable: 'PO', word: 'Popote',
+        sentence: 'Tomo jugo con popote.',
+        svg: SV(
+          PATH('M34 36 L106 36 L98 124 C97 130 43 130 42 124 Z', '#e0f2fe') +
+          PATH('M38 64 L102 64 L98 122 C97 126 43 126 42 122 Z', '#f97316') +
+          ELL(70, 36, 36, 6, '#bae6fd') +
+          AN('a-swayB',
+            G('rotate(12 80 70)',
+              RECT(74, 2, 10, 22, 2, '#ef4444') + RECT(74, 24, 10, 22, 2, '#ffffff') + RECT(74, 46, 10, 22, 2, '#ef4444') +
+              RECT(74, 68, 10, 22, 2, '#ffffff') + RECT(74, 90, 10, 22, 2, '#ef4444')
+            )
+          ) +
+          CIR(104, 38, 13, '#fb923c') + CIR(104, 38, 9, '#fed7aa') +
+          LN('M104 29 L104 47 M95 38 L113 38 M98 32 L110 44 M110 32 L98 44', 1.2) +
+          AN('a-rise', BUB(52, 108, 3), 0) + AN('a-rise', BUB(66, 100, 2.5), 0.9) + AN('a-rise', BUB(88, 110, 3.2), 1.6) +
+          HL('M44 48 L48 112', 3)
+        )
+      },
+      {
+        id: 'p_pulpo', letter: 'P', syllable: 'PU', word: 'Pulpo',
+        sentence: 'El pulpo tiene ocho patas.',
+        svg: SV(
+          BUB(124, 30, 4) + BUB(132, 48, 3) + BUB(14, 40, 3) +
+          AN('a-float',
+            AN('a-swayT',
+              PATH('M38 70 C20 82 12 104 22 120 C28 128 38 124 34 116 C30 108 36 96 48 84 Z', '#a855f7') +
+              PATH('M50 78 C38 96 36 118 46 128 C52 134 60 128 56 120 C52 110 56 96 62 84 Z', '#c084fc') +
+              PATH('M102 70 C120 82 128 104 118 120 C112 128 102 124 106 116 C110 108 104 96 92 84 Z', '#a855f7') +
+              PATH('M90 78 C102 96 104 118 94 128 C88 134 80 128 84 120 C88 110 84 96 78 84 Z', '#c084fc') +
+              PATH('M62 82 C60 100 62 118 70 128 C78 118 80 100 78 82 Z', '#a855f7') +
+              SHINE(26, 110) + SHINE(30, 98) + SHINE(48, 122) + SHINE(52, 108) + SHINE(114, 110) + SHINE(110, 98) + SHINE(92, 122) + SHINE(88, 108) + SHINE(70, 118) + SHINE(70, 104)
+            ) +
+            ELL(70, 46, 38, 34, '#a855f7') +
+            CIR(52, 24, 4, '#d8b4fe') + CIR(72, 18, 3.5, '#d8b4fe') + CIR(92, 26, 4, '#d8b4fe') + CIR(104, 40, 3, '#d8b4fe') +
+            CIR(55, 50, 9, '#ffffff') + CIR(85, 50, 9, '#ffffff') +
+            BL(DOT(57, 52, 4) + DOT(83, 52, 4) + SHINE(58.4, 50.6, 1.3) + SHINE(84.4, 50.6, 1.3)) +
+            LN('M60 68 Q70 77 80 68', 2) +
+            CIR(42, 64, 4, '#f9a8d4') + CIR(98, 64, 4, '#f9a8d4')
+          )
+        )
+      },
+      {
+        id: 'p_puerta', letter: 'P', syllable: 'PU', word: 'Puerta',
+        sentence: 'La puerta es azul.',
+        svg: SV(
+          RECT(54, 1, 32, 10, 3, '#facc15') + DOT(62, 6, 1.8) + DOT(70, 6, 1.8) + DOT(78, 6, 1.8) +
+          RECT(24, 14, 92, 114, 6, '#92400e') +
+          RECT(32, 22, 76, 104, 3, '#fef08a') +
+          AN('a-door',
+            RECT(32, 22, 76, 104, 3, '#3b82f6') +
+            RECT(40, 30, 28, 30, 3, '#60a5fa') + RECT(72, 30, 28, 30, 3, '#60a5fa') +
+            RECT(40, 68, 28, 48, 3, '#60a5fa') + RECT(72, 68, 28, 48, 3, '#60a5fa') +
+            CIR(103, 64, 4.5, '#facc15')
+          ) +
+          RECT(34, 128, 72, 8, 3, '#ef4444') + LN('M44 128 L44 136 M56 128 L56 136 M68 128 L68 136 M80 128 L80 136 M92 128 L92 136', 1.2)
+        )
+      },
+
+      // ==================== LETRA D (DA, DE, DI, DO, DU) ====================
+      {
+        id: 'd_dado', letter: 'D', syllable: 'DA', word: 'Dado',
+        sentence: 'El dado tiene puntos.',
+        svg: SV(
+          AN('a-shadow', ELL(70, 130, 38, 5, '#cbd5e1')) +
+          AN('a-tumble',
+            POLY('70,12 118,34 70,56 22,34', '#fca5a5') +
+            POLY('22,34 70,56 70,116 22,92', '#ef4444') +
+            POLY('118,34 70,56 70,116 118,92', '#f87171') +
+            WEL(70, 34, 7, 4) +
+            WEL(30, 48, 4.5, 5.5) + WEL(46, 76, 4.5, 5.5) + WEL(62, 104, 4.5, 5.5) +
+            WEL(108, 50, 4.5, 5.5) + WEL(82, 100, 4.5, 5.5)
+          )
+        )
+      },
+      {
+        id: 'd_dalia', letter: 'D', syllable: 'DA', word: 'Dalia',
+        sentence: 'La dalia es una flor.',
+        svg: SV(
+          RECT(66, 104, 8, 34, 2, '#16a34a') +
+          PATH('M70 124 C84 110 102 112 110 120 C102 132 84 134 70 124 Z', '#22c55e') +
+          PATH('M70 116 C56 104 38 106 30 114 C38 126 56 128 70 116 Z', '#4ade80') +
+          AN('a-wobble',
+            PETALS('M70 60 C57 46 57 26 70 14 C83 26 83 46 70 60 Z', '#ec4899', '#f472b6', 8, 0) +
+            PETALS('M70 60 C62 52 62 40 70 32 C78 40 78 52 70 60 Z', '#fb7185', '#fda4af', 8, 22.5) +
+            CIR(70, 60, 9, '#facc15') +
+            DOT(66, 58, 1.3) + DOT(74, 58, 1.3) + DOT(70, 64, 1.3)
+          )
+        )
+      },
+      {
+        id: 'd_delfin', letter: 'D', syllable: 'DE', word: 'Delfín',
+        sentence: 'El delfín salta en el mar.',
+        svg: SV(
+          AN('a-jump',
+            POLY('32,88 8,74 14,96 6,114 34,104', '#0ea5e9') +
+            PATH('M60 56 C64 40 76 34 86 34 C80 40 78 50 80 54 Z', '#0ea5e9') +
+            PATH('M28 100 C30 66 60 44 92 52 C102 55 108 60 112 66 C118 62 126 64 128 68 C126 74 118 78 110 78 C100 96 64 116 28 100 Z', '#38bdf8') +
+            PATH('M40 104 C66 112 96 100 108 82 C100 94 70 104 40 104 Z', '#e0f2fe') +
+            PATH('M70 88 C76 100 70 112 58 116 C60 106 62 96 64 86 Z', '#0ea5e9') +
+            BL(DOT(104, 62, 3.2) + SHINE(105.2, 60.8, 1.1)) +
+            LN('M112 72 C118 74 122 72 126 70', 1.8) +
+            AN('a-twinkle', CIR(20, 58, 3, '#bae6fd') + CIR(10, 68, 2.5, '#bae6fd') + CIR(122, 96, 3, '#bae6fd'))
+          ) +
+          AN('a-bob',
+            PATH('M0 122 C14 110 28 110 42 122 C56 134 70 134 84 122 C98 110 112 110 126 122 C132 127 136 128 140 126 L140 140 L0 140 Z', '#3b82f6') +
+            LN('M18 130 Q26 126 34 130 M84 132 Q92 128 100 132', 1.4)
+          )
+        )
+      },
+      {
+        id: 'd_dedo', letter: 'D', syllable: 'DE', word: 'Dedo',
+        sentence: 'Dani señala con el dedo.',
+        svg: SV(
+          LN('M120 40 L126 32 M120 74 L126 82 M106 36 L108 26 M106 78 L108 88', 2) +
+          RECT(56, 48, 72, 18, 9, '#fed7aa') +
+          ELL(115, 57, 8, 6, '#fbcfe8') +
+          LN('M86 51 L86 63 M80 51 L80 63', 1.3) +
+          RECT(22, 40, 50, 56, 14, '#fed7aa') +
+          RECT(48, 70, 26, 14, 7, '#fed7aa') + RECT(46, 84, 26, 14, 7, '#fed7aa') + RECT(44, 98, 24, 14, 7, '#fed7aa') +
+          PATH('M44 44 C48 28 64 24 70 34 C72 44 60 52 46 54 Z', '#fed7aa') +
+          LN('M60 32 C58 36 56 40 56 44', 1.3) +
+          RECT(6, 38, 20, 60, 5, '#3b82f6') + LN('M16 38 L16 98', 1.4)
+        )
+      },
+      {
+        id: 'd_disco', letter: 'D', syllable: 'DI', word: 'Disco',
+        sentence: 'El disco da vueltas.',
+        svg: SV(
+          AN('a-float', CIR(116, 16, 5, '#ec4899') + LN('M121 16 L121 3 L130 6', 2)) +
+          RECT(4, 16, 100, 100, 6, '#facc15') +
+          CIR(30, 44, 12, '#ef4444') +
+          CIR(34, 92, 7, '#a855f7') + LN('M41 92 L41 70 L54 74', 2.2) +
+          AN('a-spin',
+            CIR(84, 74, 46, '#334155') +
+            RING(84, 74, 38) + RING(84, 74, 30) + RING(84, 74, 24) +
+            CIR(84, 74, 16, '#ef4444') + CIR(84, 74, 7, '#facc15') + SHINE(84, 74, 2.5) +
+            HL('M56 54 A34 34 0 0 1 76 42', 3.5) + HL('M112 94 A34 34 0 0 1 92 106', 3.5)
+          )
+        )
+      },
+      {
+        id: 'd_dinosaurio', letter: 'D', syllable: 'DI', word: 'Dinosaurio',
+        sentence: 'El dinosaurio es enorme.',
+        svg: SV(
+          AN('a-wagR', PATH('M34 94 C18 94 8 106 2 114 C16 114 30 112 42 106 Z', '#22c55e')) +
+          RECT(32, 108, 16, 24, 5, '#16a34a') + RECT(50, 112, 14, 20, 5, '#22c55e') +
+          RECT(70, 112, 14, 20, 5, '#22c55e') + RECT(86, 108, 16, 24, 5, '#16a34a') +
+          POLY('34,86 40,68 48,80', '#f97316') + POLY('46,78 54,60 62,74', '#f97316') +
+          POLY('60,74 68,56 76,72', '#f97316') + POLY('74,76 82,60 90,78', '#f97316') +
+          ELL(66, 98, 42, 26, '#22c55e') +
+          ELL(66, 110, 28, 12, '#bbf7d0') +
+          CIR(46, 90, 4, '#4ade80') + CIR(60, 84, 5, '#4ade80') + CIR(76, 88, 4, '#4ade80') + CIR(90, 96, 3.5, '#4ade80') + CIR(50, 104, 3.5, '#4ade80') +
+          AN('a-swayB',
+            PATH('M86 92 C98 72 96 50 100 36 L120 42 C118 58 118 82 108 100 Z', '#22c55e') +
+            ELL(112, 32, 17, 12, '#22c55e') +
+            POLY('104,23 108,12 112,22', '#f97316') +
+            BL(DOT(115, 28, 2.8) + SHINE(116, 27, 1)) +
+            DOT(125, 31, 1.4) +
+            LN('M104 38 Q113 43 123 38', 1.8) +
+            CIR(106, 37, 3, '#fda4af')
+          )
+        )
+      },
+      {
+        id: 'd_dona', letter: 'D', syllable: 'DO', word: 'Dona',
+        sentence: 'La dona tiene chispas.',
+        svg: SV(
+          ELL(70, 134, 40, 5, '#cbd5e1') +
+          AN('a-wobble',
+            pa('path', 'd="M18 70 A52 52 0 1 1 122 70 A52 52 0 1 1 18 70 Z M53 70 A17 17 0 1 0 87 70 A17 17 0 1 0 53 70 Z" fill-rule="evenodd"', '#f59e0b') +
+            pa('path', 'd="M26 70 A44 44 0 1 1 114 70 A44 44 0 1 1 26 70 Z M50 70 A20 20 0 1 0 90 70 A20 20 0 1 0 50 70 Z" fill-rule="evenodd"', '#ec4899') +
+            [[100, 81, 110, '#facc15'], [84, 98, 155, '#22c55e'], [59, 99, 200, '#3b82f6'], [41, 83, 245, '#facc15'],
+             [40, 59, 290, '#a855f7'], [56, 41, 335, '#22c55e'], [81, 40, 20, '#3b82f6'], [99, 56, 65, '#facc15']]
+              .map(([x, y, d, c]) => G(`rotate(${d} ${x} ${y})`, RECT(x - 6, y - 2.5, 12, 5, 2.5, c))).join('') +
+            HL('M34 56 C38 44 46 38 54 34', 3)
+          )
+        )
+      },
+      {
+        id: 'd_doctor', letter: 'D', syllable: 'DO', word: 'Doctor',
+        sentence: 'El doctor cuida a Dani.',
+        svg: SV(
+          AN('a-float',
+            PATH('M18 138 C18 104 40 88 70 88 C100 88 122 104 122 138 Z', '#ffffff') +
+            POLY('56,88 70,108 84,88', '#38bdf8') +
+            RECT(62, 76, 16, 14, 3, '#fed7aa') +
+            CIR(42, 58, 5, '#fed7aa') + CIR(98, 58, 5, '#fed7aa') +
+            CIR(70, 56, 28, '#fed7aa') +
+            PATH('M42 56 C40 46 44 42 48 40 L50 54 Z', '#92400e') + PATH('M98 56 C100 46 96 42 92 40 L90 54 Z', '#92400e') +
+            PATH('M44 40 C44 12 96 12 96 40 Z', '#ffffff') +
+            RECT(42, 36, 56, 9, 3, '#38bdf8') +
+            AN('a-pulse', PATH('M66 17 L74 17 L74 22 L79 22 L79 30 L74 30 L74 35 L66 35 L66 30 L61 30 L61 22 L66 22 Z', '#ef4444')) +
+            BL(DOT(60, 58, 3) + DOT(80, 58, 3) + SHINE(61, 57, 1) + SHINE(81, 57, 1)) +
+            LN('M54 52 Q60 49 66 52 M74 52 Q80 49 86 52', 1.6) +
+            LN('M70 60 L70 64', 1.5) + LN('M60 69 Q70 77 80 69', 2) +
+            CIR(52, 66, 4, '#fda4af') + CIR(88, 66, 4, '#fda4af') +
+            LN('M56 90 C46 112 70 126 84 110', 3) + LN('M84 90 C90 98 90 104 84 110', 3) +
+            CIR(84, 112, 6, '#94a3b8') +
+            RECT(28, 112, 22, 18, 3, '#e2e8f0') + RECT(35, 104, 4, 10, 1, '#ef4444')
+          )
+        )
+      },
+      {
+        id: 'd_dulce', letter: 'D', syllable: 'DU', word: 'Dulce',
+        sentence: 'Dame un dulce.',
+        svg: SV(
+          AN('a-twinkle', STAR(22, 22, '#fde047'), 0) +
+          AN('a-twinkle', STAR(120, 26, '#fde047'), 0.9) +
+          AN('a-twinkle', STAR(112, 122, '#fde047'), 1.5) +
+          AN('a-wobble',
+            POLY('44,70 12,46 12,94', '#f9a8d4') +
+            POLY('96,70 128,46 128,94', '#f9a8d4') +
+            LN('M44 70 L16 58 M44 70 L14 70 M44 70 L16 82 M96 70 L124 58 M96 70 L126 70 M96 70 L124 82', 1.4) +
+            CIR(70, 70, 32, '#ec4899') +
+            PATH('M70 38 A32 32 0 0 1 102 70 L88 70 A18 18 0 0 0 70 52 Z', '#fde047') +
+            PATH('M70 102 A32 32 0 0 1 38 70 L52 70 A18 18 0 0 0 70 88 Z', '#fde047') +
+            CIR(70, 70, 8, '#fde047') +
+            HL('M50 50 C54 44 60 41 66 40', 3.5)
+          )
+        )
+      },
+      {
+        id: 'd_duende', letter: 'D', syllable: 'DU', word: 'Duende',
+        sentence: 'El duende usa gorro.',
+        svg: SV(
+          RECT(112, 112, 8, 18, 2, '#f8fafc') +
+          AN('a-pulse', PATH('M104 114 C104 96 128 96 128 114 Z', '#ef4444') + SHINE(112, 106, 2) + SHINE(121, 108, 1.7)) +
+          PATH('M38 128 C38 106 102 106 102 128 L106 138 L34 138 Z', '#3b82f6') +
+          POLY('48,70 28,58 50,82', '#fed7aa') + POLY('92,70 112,58 90,82', '#fed7aa') +
+          CIR(70, 72, 24, '#fed7aa') +
+          PATH('M46 74 C42 100 54 126 70 130 C86 126 98 100 94 74 C88 84 80 88 70 88 C60 88 52 84 46 74 Z', '#e2e8f0') +
+          ELL(61, 82, 10, 5, '#f8fafc') + ELL(79, 82, 10, 5, '#f8fafc') +
+          CIR(70, 76, 6, '#fb7185') +
+          BL(DOT(61, 66, 3) + DOT(79, 66, 3) + SHINE(62, 65, 1) + SHINE(80, 65, 1)) +
+          AN('a-swayB',
+            PATH('M70 4 C64 26 54 38 34 52 L106 52 C86 38 76 26 70 4 Z', '#22c55e') +
+            ELL(70, 54, 42, 9, '#16a34a') +
+            CIR(66, 30, 4, '#facc15') + CIR(78, 40, 4, '#facc15') + CIR(58, 44, 3.5, '#facc15') +
+            CIR(70, 6, 5, '#f8fafc')
+          )
+        )
+      }
+    ];
+
+    // Paleta de 10 colores vibrantes
+    const COLOR_PALETTE = [
+      { name: 'Rojo', hex: '#ef4444' },
+      { name: 'Azul', hex: '#3b82f6' },
+      { name: 'Amarillo', hex: '#facc15' },
+      { name: 'Verde', hex: '#22c55e' },
+      { name: 'Naranja', hex: '#f97316' },
+      { name: 'Morado', hex: '#a855f7' },
+      { name: 'Rosa', hex: '#ec4899' },
+      { name: 'Café', hex: '#92400e' },
+      { name: 'Celeste', hex: '#38bdf8' },
+      { name: 'Piel', hex: '#fed7aa' }
+    ];
+
+    const ENCOURAGEMENT_PHRASES = [
+      'INTÉNTALO NUEVAMENTE',
+      'ESFUÉRZATE',
+      'SÉ QUE TÚ PUEDES'
+    ];
+
+    /**
+     * ============================================================================
+     * 4. ESTADO DEL JUEGO Y LÓGICA DE RONDAS (3 RONDAS, 5 PARES POR RONDA)
+     * ============================================================================
+     */
+    const GameState = {
+      round: 1,
+      maxRounds: 3,
+      hits: 0,
+      mistakes: 0,
+      usedWordIds: new Set(),
+      roundPairs: [],
+      shuffledDrawings: [],
+      matchedIds: new Set(),
+      coloredSvgs: {},
+      selectedSentenceId: null,
+      selectedDrawingId: null,
+      activeColor: '#ef4444',
+      currentlyColoringId: null
+    };
+
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function updateStatsUI() {
+      document.getElementById('statRound').textContent = `${GameState.round} / ${GameState.maxRounds}`;
+      document.getElementById('statHits').textContent = `${GameState.hits} / 5`;
+      document.getElementById('statMistakes').textContent = `${GameState.mistakes}`;
+
+      const mistakesBox = document.getElementById('statMistakesBox');
+      if (GameState.mistakes >= 2) {
+        mistakesBox.className = 'flex items-center gap-1.5 bg-red-100 border border-red-300 px-2.5 py-1.5 rounded-xl transition-colors';
+      } else {
+        mistakesBox.className = 'flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-xl transition-colors';
+      }
+    }
+
+    function setFeedbackBanner(text, type = 'neutral') {
+      const banner = document.getElementById('feedbackBanner');
+      banner.textContent = text;
+      const base = 'mb-4 px-4 py-2.5 rounded-2xl text-center font-extrabold text-sm sm:text-base transition-all duration-300 ';
+      const styles = {
+        neutral: 'bg-slate-100 text-slate-700 border border-slate-200',
+        info: 'bg-blue-100 text-blue-800 border border-blue-300',
+        success: 'bg-emerald-100 text-emerald-800 border border-emerald-300',
+        error: 'bg-rose-100 text-rose-800 border border-rose-300'
+      };
+      banner.className = base + (styles[type] || styles.neutral);
+    }
+
+    /** Inicia o reinicia una ronda con 5 palabras al azar (mezcla de P y D) */
+    function setupRound() {
+      GameState.hits = 0;
+      GameState.mistakes = 0;
+      GameState.matchedIds.clear();
+      GameState.coloredSvgs = {};
+      GameState.selectedSentenceId = null;
+      GameState.selectedDrawingId = null;
+
+      let availableP = WORD_BANK.filter(w => w.letter === 'P' && !GameState.usedWordIds.has(w.id));
+      let availableD = WORD_BANK.filter(w => w.letter === 'D' && !GameState.usedWordIds.has(w.id));
+
+      if (availableP.length < 3 || availableD.length < 3) {
+        GameState.usedWordIds.clear();
+        availableP = WORD_BANK.filter(w => w.letter === 'P');
+        availableD = WORD_BANK.filter(w => w.letter === 'D');
+      }
+
+      // 3 de una letra y 2 de la otra (al azar) para tener 5 por ronda
+      const pCount = Math.random() < 0.5 ? 3 : 2;
+      const dCount = 5 - pCount;
+
+      const pickedP = shuffleArray(availableP).slice(0, pCount);
+      const pickedD = shuffleArray(availableD).slice(0, dCount);
+      const combined = shuffleArray([...pickedP, ...pickedD]);
+
+      combined.forEach(item => GameState.usedWordIds.add(item.id));
+
+      GameState.roundPairs = combined;
+      let shuffledRight = shuffleArray(combined);
+      if (shuffledRight.every((item, idx) => item.id === combined[idx].id)) {
+        shuffledRight.reverse();
+      }
+      GameState.shuffledDrawings = shuffledRight;
+
+      updateStatsUI();
+      renderBoard();
+      setFeedbackBanner(`Ronda ${GameState.round}: Lee cada oración y únela con su dibujo.`, 'info');
+    }
+
+    function renderBoard() {
+      const sentencesCol = document.getElementById('sentencesColumn');
+      const drawingsCol = document.getElementById('drawingsColumn');
+      sentencesCol.innerHTML = '';
+      drawingsCol.innerHTML = '';
+
+      GameState.roundPairs.forEach((item) => {
+        const isMatched = GameState.matchedIds.has(item.id);
+        const isSelected = GameState.selectedSentenceId === item.id;
+
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.dataset.sentenceId = item.id;
+        card.disabled = isMatched;
+
+        let cardClass = 'group relative w-full text-left px-3.5 py-3.5 sm:px-5 sm:py-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-2 cursor-pointer ';
+        if (isMatched) {
+          cardClass += 'bg-emerald-50 border-emerald-500 text-emerald-950 cursor-default';
+        } else if (isSelected) {
+          cardClass += 'bg-blue-50 border-blue-600 ring-4 ring-blue-200 scale-[1.02]';
+        } else {
+          cardClass += 'bg-white border-slate-300 hover:border-blue-400 hover:bg-slate-50 shadow-xs';
+        }
+        card.className = cardClass;
+
+        card.innerHTML = `
+          <span class="school-text text-base sm:text-xl md:text-2xl font-bold leading-snug pr-2">
+            ${item.sentence}
+          </span>
+          <span data-anchor-sentence="${item.id}"
+            class="anchor-dot shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-slate-800 ${
+              isMatched ? 'bg-emerald-500' : isSelected ? 'bg-blue-600 active' : 'bg-white group-hover:bg-blue-200'
+            }">
+          </span>
+        `;
+
+        card.addEventListener('click', () => handleSelectSentence(item.id));
+        sentencesCol.appendChild(card);
+      });
+
+      GameState.shuffledDrawings.forEach((item) => {
+        const isMatched = GameState.matchedIds.has(item.id);
+        const isSelected = GameState.selectedDrawingId === item.id;
+
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.dataset.drawingId = item.id;
+
+        let cardClass = 'group relative w-full p-2 sm:p-3 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between gap-2 cursor-pointer ';
+        if (isMatched) {
+          cardClass += 'bg-emerald-50/70 border-emerald-500';
+        } else if (isSelected) {
+          cardClass += 'bg-blue-50 border-blue-600 ring-4 ring-blue-200 scale-[1.03]';
+        } else {
+          cardClass += 'bg-white border-slate-300 hover:border-blue-400 shadow-xs';
+        }
+        card.className = cardClass;
+
+        const svgMarkup = GameState.coloredSvgs[item.id] || item.svg;
+
+        card.innerHTML = `
+          <span data-anchor-drawing="${item.id}"
+            class="anchor-dot shrink-0 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-slate-800 ${
+              isMatched ? 'bg-emerald-500' : isSelected ? 'bg-blue-600 active' : 'bg-white group-hover:bg-blue-200'
+            }">
+          </span>
+          <div id="board-svg-box-${item.id}" class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 mx-auto flex items-center justify-center relative">
+            ${svgMarkup}
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          if (isMatched) {
+            openColoringModal(item.id);
+          } else {
+            handleSelectDrawing(item.id);
+          }
+        });
+        drawingsCol.appendChild(card);
+      });
+
+      requestAnimationFrame(drawConnectorLines);
+    }
+
+    function drawConnectorLines() {
+      const svg = document.getElementById('connectorSvg');
+      const board = document.getElementById('matchingBoard');
+      if (!svg || !board) return;
+
+      const boardRect = board.getBoundingClientRect();
+      svg.setAttribute('viewBox', `0 0 ${boardRect.width} ${boardRect.height}`);
+      svg.innerHTML = '';
+
+      GameState.matchedIds.forEach((id) => {
+        const leftDot = board.querySelector(`[data-anchor-sentence="${id}"]`);
+        const rightDot = board.querySelector(`[data-anchor-drawing="${id}"]`);
+        if (!leftDot || !rightDot) return;
+
+        const r1 = leftDot.getBoundingClientRect();
+        const r2 = rightDot.getBoundingClientRect();
+
+        const x1 = r1.left + r1.width / 2 - boardRect.left;
+        const y1 = r1.top + r1.height / 2 - boardRect.top;
+        const x2 = r2.left + r2.width / 2 - boardRect.left;
+        const y2 = r2.top + r2.height / 2 - boardRect.top;
+
+        const cx1 = x1 + (x2 - x1) * 0.45;
+        const cx2 = x1 + (x2 - x1) * 0.55;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', '#10b981');
+        path.setAttribute('stroke-width', '5');
+        path.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(path);
+      });
+    }
+
+    window.addEventListener('resize', drawConnectorLines);
+
+    function handleSelectSentence(id) {
+      if (GameState.matchedIds.has(id)) return;
+      SoundFX.playPop();
+      GameState.selectedSentenceId = (GameState.selectedSentenceId === id) ? null : id;
+      renderBoard();
+      checkPairMatch();
+    }
+
+    function handleSelectDrawing(id) {
+      if (GameState.matchedIds.has(id)) return;
+      SoundFX.playPop();
+      GameState.selectedDrawingId = (GameState.selectedDrawingId === id) ? null : id;
+      renderBoard();
+      checkPairMatch();
+    }
+
+    function checkPairMatch() {
+      const sId = GameState.selectedSentenceId;
+      const dId = GameState.selectedDrawingId;
+      if (!sId || !dId) return;
+
+      if (sId === dId) {
+        const matchedItem = WORD_BANK.find(w => w.id === sId);
+        GameState.matchedIds.add(sId);
+        GameState.hits += 1;
+        GameState.selectedSentenceId = null;
+        GameState.selectedDrawingId = null;
+
+        updateStatsUI();
+        renderBoard();
+        SoundFX.playSuccess();
+
+        setFeedbackBanner(`¡Muy bien! "${matchedItem.sentence}" Ahora coloréalo.`, 'success');
+
+        VoiceEngine.speak(matchedItem.sentence, 0.9);
+        setTimeout(() => {
+          openColoringModal(sId);
+        }, 650);
+
+      } else {
+        GameState.mistakes += 1;
+        updateStatsUI();
+        SoundFX.playError();
+
+        const randomPhrase = ENCOURAGEMENT_PHRASES[Math.floor(Math.random() * ENCOURAGEMENT_PHRASES.length)];
+        setFeedbackBanner(`❌ ${randomPhrase}`, 'error');
+        VoiceEngine.speak(randomPhrase, 0.95, 1.08);
+
+        const sCard = document.querySelector(`[data-sentence-id="${sId}"]`);
+        const dCard = document.querySelector(`[data-drawing-id="${dId}"]`);
+        if (sCard) sCard.classList.add('animate-shake', 'border-red-500', 'bg-red-50');
+        if (dCard) dCard.classList.add('animate-shake', 'border-red-500', 'bg-red-50');
+
+        setTimeout(() => {
+          GameState.selectedSentenceId = null;
+          GameState.selectedDrawingId = null;
+          renderBoard();
+        }, 550);
+      }
+    }
+
+    /**
+     * ============================================================================
+     * 5. ESTUDIO DE COLOREADO Y ANIMACIÓN CELEBRATORIA
+     * ============================================================================
+     */
+    function buildColorPalette() {
+      const container = document.getElementById('colorPalette');
+      container.innerHTML = '';
+      COLOR_PALETTE.forEach((col) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = col.name;
+        btn.setAttribute('aria-label', col.name);
+        btn.style.backgroundColor = col.hex;
+        btn.className = `w-10 h-10 sm:w-11 sm:h-11 rounded-full border-4 transition-transform cursor-pointer mx-auto shadow-sm ${
+          GameState.activeColor === col.hex ? 'border-slate-900 scale-110 ring-4 ring-slate-300' : 'border-white hover:scale-105'
+        }`;
+        btn.addEventListener('click', () => {
+          GameState.activeColor = col.hex;
+          SoundFX.playPop();
+          buildColorPalette();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function openColoringModal(wordId) {
+      const item = WORD_BANK.find(w => w.id === wordId);
+      if (!item) return;
+
+      GameState.currentlyColoringId = wordId;
+      document.getElementById('coloringSentence').textContent = item.sentence;
+
+      const wrapper = document.getElementById('coloringCanvasWrapper');
+      wrapper.innerHTML = GameState.coloredSvgs[wordId] || item.svg;
+
+      const svgEl = wrapper.querySelector('svg');
+      if (svgEl) {
+        svgEl.classList.add('modal-coloring-svg');
+        svgEl.querySelectorAll('.paintable').forEach((part) => {
+          part.addEventListener('click', (e) => {
+            e.stopPropagation();
+            part.setAttribute('fill', GameState.activeColor);
+            SoundFX.playPop();
+          });
+        });
+      }
+
+      buildColorPalette();
+      document.getElementById('coloringModal').classList.remove('hidden');
+    }
+
+    document.getElementById('btnAutoColor').addEventListener('click', () => {
+      const wrapper = document.getElementById('coloringCanvasWrapper');
+      wrapper.querySelectorAll('.paintable').forEach((part) => {
+        part.setAttribute('fill', part.getAttribute('data-default') || GameState.activeColor);
+      });
+      SoundFX.playSuccess();
+    });
+
+    document.getElementById('btnFinishColoring').addEventListener('click', () => {
+      const wordId = GameState.currentlyColoringId;
+      if (!wordId) return;
+
+      const wrapper = document.getElementById('coloringCanvasWrapper');
+      const svgEl = wrapper.querySelector('svg');
+
+      if (svgEl) {
+        // Si no pintó nada, se aplican los colores sugeridos para que luzca bonito
+        const parts = Array.from(svgEl.querySelectorAll('.paintable'));
+        const anyPainted = parts.some(p => {
+          const f = (p.getAttribute('fill') || '').toLowerCase();
+          return f && f !== '#ffffff' && f !== 'white';
+        });
+        if (!anyPainted) {
+          parts.forEach(p => p.setAttribute('fill', p.getAttribute('data-default') || '#facc15'));
+        }
+        svgEl.classList.remove('modal-coloring-svg');
+        GameState.coloredSvgs[wordId] = svgEl.outerHTML;
+      }
+
+      document.getElementById('coloringModal').classList.add('hidden');
+      renderBoard();
+      triggerDrawingAnimation(wordId);
+
+      if (GameState.matchedIds.size === 5) {
+        setTimeout(() => {
+          evaluateRoundCompletion();
+        }, 1250);
+      }
+    });
+
+    function triggerDrawingAnimation(wordId) {
+      const box = document.getElementById(`board-svg-box-${wordId}`);
+      if (!box) return;
+
+      SoundFX.playSuccess();
+      box.classList.add('animate-celebrate');
+
+      const stars = ['⭐', '✨', '🌟', '🎉'];
+      stars.forEach((emoji, i) => {
+        const span = document.createElement('span');
+        span.textContent = emoji;
+        span.className = 'star-burst absolute text-xl pointer-events-none';
+        span.style.left = `${15 + i * 22}%`;
+        span.style.top = `${i % 2 === 0 ? '5%' : '65%'}`;
+        box.appendChild(span);
+        setTimeout(() => span.remove(), 950);
+      });
+
+      setTimeout(() => {
+        box.classList.remove('animate-celebrate');
+      }, 1000);
+    }
+
+    /**
+     * ============================================================================
+     * 6. FIN DE RONDA (menos de 2 fallas avanza; 2 o más repite la ronda)
+     * ============================================================================
+     */
+    function evaluateRoundCompletion() {
+      const modal = document.getElementById('roundResultModal');
+      const icon = document.getElementById('resultIcon');
+      const title = document.getElementById('resultTitle');
+      const msg = document.getElementById('resultMessage');
+      const btn = document.getElementById('btnRoundAction');
+
+      document.getElementById('modalStatRound').textContent = `${GameState.round} / ${GameState.maxRounds}`;
+      document.getElementById('modalStatHits').textContent = `${GameState.hits} / 5`;
+      document.getElementById('modalStatMistakes').textContent = `${GameState.mistakes}`;
+
+      const passed = GameState.mistakes < 2;
+
+      if (!passed) {
+        icon.textContent = '💪';
+        title.textContent = '¡Vamos a intentarlo otra vez!';
+        msg.textContent = `Tuviste ${GameState.mistakes} fallas. Necesitas menos de 2 fallas para avanzar. ¡Tú puedes lograrlo!`;
+        btn.textContent = '🔄 REPETIR RONDA';
+        btn.className = 'w-full py-4 px-6 rounded-2xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-900 font-black text-lg shadow-lg transition cursor-pointer';
+
+        VoiceEngine.speak('Tuviste dos o más fallas. Repitamos la ronda, ¡sé que tú puedes!', 0.92);
+
+        btn.onclick = () => {
+          modal.classList.add('hidden');
+          setupRound();
+        };
+      } else if (GameState.round < GameState.maxRounds) {
+        icon.textContent = '🌟';
+        title.textContent = `¡Excelente Ronda ${GameState.round}!`;
+        msg.textContent = `¡Felicidades! Completaste la ronda con ${GameState.mistakes === 0 ? 'cero fallas' : 'solo 1 falla'}.`;
+        btn.textContent = `SIGUIENTE RONDA (${GameState.round + 1} / 3) ➡️`;
+        btn.className = 'w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-lg shadow-lg transition cursor-pointer';
+
+        VoiceEngine.speak(`¡Muy bien! Pasamos a la ronda ${GameState.round + 1}.`, 0.92);
+
+        btn.onclick = () => {
+          modal.classList.add('hidden');
+          GameState.round += 1;
+          setupRound();
+        };
+      } else {
+        icon.textContent = '🏆';
+        title.textContent = '¡FELICIDADES, LO LOGRASTE!';
+        msg.textContent = 'Completaste las 3 rondas leyendo, uniendo y coloreando todos los dibujos.';
+        btn.textContent = '🔁 REINICIAR ACTIVIDAD';
+        btn.className = 'w-full py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-lg shadow-lg transition cursor-pointer';
+
+        VoiceEngine.speak('¡Muchas felicidades! Completaste toda la actividad.', 0.92);
+
+        btn.onclick = () => {
+          modal.classList.add('hidden');
+          GameState.round = 1;
+          GameState.usedWordIds.clear();
+          setupRound();
+          VoiceEngine.speak('LEE Y UNE CON SU DIBUJO Y LUEGO COLOREA', 0.9);
+        };
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    /**
+     * ============================================================================
+     * 7. ARRANQUE
+     * ============================================================================
+     */
+    const MAIN_INSTRUCTION = 'LEE Y UNE CON SU DIBUJO Y LUEGO COLOREA';
+
+    document.getElementById('btnStartActivity').addEventListener('click', () => {
+      SoundFX.ensureContext();
+      document.getElementById('welcomeOverlay').classList.add('hidden');
+      setupRound();
+      VoiceEngine.speak(MAIN_INSTRUCTION, 0.9);
+    });
+
+    document.getElementById('btnRepeatInstruction').addEventListener('click', () => {
+      SoundFX.playPop();
+      VoiceEngine.speak(MAIN_INSTRUCTION, 0.9);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      VoiceEngine.init();
+      setupRound();
+    });
+  </script>
+</body>
+</html>
